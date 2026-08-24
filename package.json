@@ -1,0 +1,63 @@
+{
+  "name": "spark-demo",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
+    "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
+    "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test:chat-integration": "node --test tests/chat-warranty.integration.test.mjs",
+    "test:duplicate-order": "node --test tests/chat-duplicate-order.integration.test.mjs",
+    "test:confirmation": "node --import tsx --test tests/confirmation.test.ts",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .bt",
+    "db:generate": "drizzle-kit generate",
+    "scenarios:check": "node .agents/skills/generate-spark-scenarios/scripts/check-novelty.mjs scenarios/manifest.json",
+    "scenarios:pilot": "node scripts/run-scenarios.mjs --source=seed --count=20",
+    "scenarios:daily": "node scripts/run-scenarios.mjs --source=daily --count=5",
+    "evals:pilot": "node scripts/run-pilot-evals.mjs",
+    "playgrounds:seed": "node --env-file=.env.braintrust --import tsx scripts/playgrounds/seed-playground-datasets.ts",
+    "playgrounds:smoke": "bt eval scripts/playgrounds/spark-playgrounds.eval.ts --no-send-logs --first 10 --env-file .env.braintrust",
+    "playgrounds:dev": "bt eval scripts/playgrounds/spark-playgrounds.eval.ts --dev --env-file .env.braintrust"
+  },
+  "dependencies": {
+    "braintrust": "^3.27.0",
+    "drizzle-orm": "0.45.2",
+    "openai": "^7.4.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.37.1",
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "@eslint/js": "9.39.4",
+    "@next/eslint-plugin-next": "16.2.6",
+    "@openai/sites-vite-plugin": "0.1.0",
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.4",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "16.4.0",
+    "react-server-dom-webpack": "19.2.6",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.59.3",
+    "vinext": "1.0.0-beta.2",
+    "vite": "8.0.13",
+    "wrangler": "4.92.0"
+  },
+  "type": "module",
+  "overrides": {
+    "ws": "8.21.3"
+  }
+}

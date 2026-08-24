@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1786991092288,
+      "tag": "0000_living_apocalypse",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787004591457,
+      "tag": "0001_curved_fallen_one",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787069290616,
+      "tag": "0002_late_sally_floyd",
+      "breakpoints": true
+    }
+  ]
+}

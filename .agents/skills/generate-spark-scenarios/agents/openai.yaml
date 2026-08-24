@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Spark Scenarios"
+  short_description: "Create varied, realistic Spark support traces"
+  default_prompt: "Use $generate-spark-scenarios to create a fresh batch of realistic Spark support conversations."
