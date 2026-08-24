@@ -16,22 +16,24 @@ jobs:
   generate-traces:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
-      BRAINTRUST_PROJECT_ID: ${{ vars.BRAINTRUST_PROJECT_ID }}
 
     steps:
       - name: Check out Spark
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.13.0
           cache: npm
 
       - name: Validate Braintrust configuration
         shell: bash
+        env:
+          BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
+          BRAINTRUST_PROJECT_ID: ${{ vars.BRAINTRUST_PROJECT_ID }}
         run: |
           if [ -z "${BRAINTRUST_API_KEY}" ]; then
             echo "::error::Add BRAINTRUST_API_KEY as a repository Actions secret."
@@ -47,6 +49,9 @@ jobs:
 
       - name: Generate five complete conversations
         shell: bash
+        env:
+          BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
+          BRAINTRUST_PROJECT_ID: ${{ vars.BRAINTRUST_PROJECT_ID }}
         run: |
           npm run dev > "${RUNNER_TEMP}/spark-dev.log" 2>&1 &
           spark_server_pid=$!
