@@ -67,6 +67,17 @@ Spark is designed for bring-your-own credentials. The safest public setup is for
 
 The current application uses a Cloudflare Worker and D1. Cloudflare is therefore the direct deployment target. A Vercel deployment would require replacing or adapting the Worker and D1 bindings. A shared hosted showcase can leave chat unconfigured, while a self-hosted deployment enables chat with the deployer's own credentials.
 
+## Automated trace generation
+
+The `Generate daily Spark traces` GitHub Actions workflow starts Spark inside a private runner and generates five complete `story-v2` conversations each day. It can also be started manually from the repository's Actions tab. Runs are sequential, capped at 30 minutes, and never overlap.
+
+Configure these under **Settings > Secrets and variables > Actions** before the first run:
+
+- Secret: `BRAINTRUST_API_KEY`
+- Variable: `BRAINTRUST_PROJECT_ID`
+
+The API key is available only to the workflow process. It is not committed, sent to the browser, or made available to pull requests from forks.
+
 ## Data and safety
 
 Spark uses a fictional, unnamed customer and isolates credits, orders, charging sessions, and scenario state by an anonymous demo account in Cloudflare D1. The browser stores only the anonymous account cookie, not authoritative product state. The application does not import or depend on the local Braintrust evidence workspace; that workspace is used only as read-only evidence while developing current Braintrust integrations.

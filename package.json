@@ -17,7 +17,7 @@
     "db:generate": "drizzle-kit generate",
     "scenarios:check": "node .agents/skills/generate-spark-scenarios/scripts/check-novelty.mjs scenarios/manifest.json",
     "scenarios:pilot": "node scripts/run-scenarios.mjs --source=seed --count=20",
-    "scenarios:daily": "node scripts/run-scenarios.mjs --source=daily --count=5",
+    "scenarios:daily": "node scripts/run-scenarios.mjs --source=daily --count=5 --prompt-version=story-v2 --summary-only=true",
     "evals:pilot": "node scripts/run-pilot-evals.mjs",
     "playgrounds:seed": "node --env-file=.env.braintrust --import tsx scripts/playgrounds/seed-playground-datasets.ts",
     "playgrounds:smoke": "bt eval scripts/playgrounds/spark-playgrounds.eval.ts --no-send-logs --first 10 --env-file .env.braintrust",

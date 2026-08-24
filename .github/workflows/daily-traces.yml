@@ -1,0 +1,73 @@
+name: Generate daily Spark traces
+
+on:
+  schedule:
+    - cron: "15 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spark-daily-traces
+  cancel-in-progress: false
+
+jobs:
+  generate-traces:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
+      BRAINTRUST_PROJECT_ID: ${{ vars.BRAINTRUST_PROJECT_ID }}
+
+    steps:
+      - name: Check out Spark
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Validate Braintrust configuration
+        shell: bash
+        run: |
+          if [ -z "${BRAINTRUST_API_KEY}" ]; then
+            echo "::error::Add BRAINTRUST_API_KEY as a repository Actions secret."
+            exit 1
+          fi
+          if [ -z "${BRAINTRUST_PROJECT_ID}" ]; then
+            echo "::error::Add BRAINTRUST_PROJECT_ID as a repository Actions variable."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate five complete conversations
+        shell: bash
+        run: |
+          npm run dev > "${RUNNER_TEMP}/spark-dev.log" 2>&1 &
+          spark_server_pid=$!
+          cleanup() {
+            kill "${spark_server_pid}" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          spark_ready=false
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/account > /dev/null; then
+              spark_ready=true
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "${spark_ready}" != "true" ]; then
+            echo "::error::Spark did not become ready within two minutes."
+            tail -n 200 "${RUNNER_TEMP}/spark-dev.log"
+            exit 1
+          fi
+
+          npm run scenarios:daily

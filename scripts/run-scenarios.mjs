@@ -25,6 +25,39 @@ function accountScenarioFor(scenario) {
   return "everyday";
 }
 
+function stableHash(value) {
+  let hash = 2_166_136_261;
+  for (const character of value) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return hash >>> 0;
+}
+
+function dailyScenarios(day, requestedCount) {
+  const ranked = manifest
+    .map((scenario) => ({ scenario, rank: stableHash(`${day}:${scenario.id}`) }))
+    .sort((left, right) => left.rank - right.rank || left.scenario.id.localeCompare(right.scenario.id));
+  const selected = [];
+  const selectedIds = new Set();
+  const selectedDomains = new Set();
+
+  for (const { scenario } of ranked) {
+    if (selectedDomains.has(scenario.domain)) continue;
+    selected.push(scenario);
+    selectedIds.add(scenario.id);
+    selectedDomains.add(scenario.domain);
+    if (selected.length === requestedCount) return selected;
+  }
+
+  for (const { scenario } of ranked) {
+    if (selectedIds.has(scenario.id)) continue;
+    selected.push(scenario);
+    if (selected.length === requestedCount) break;
+  }
+  return selected;
+}
+
 if (!Number.isInteger(count) || count < 1) throw new Error("--count must be a positive integer");
 if (!Number.isInteger(start) || start < 0) throw new Error("--start must be a non-negative integer");
 if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 5) throw new Error("--concurrency must be an integer between 1 and 5");
@@ -37,8 +70,7 @@ if (scenarioId) {
   selected = [scenario];
 } else if (source === "daily") {
   const day = Math.floor(Date.now() / 86_400_000);
-  const start = (day * count) % manifest.length;
-  selected = Array.from({ length: count }, (_, offset) => manifest[(start + offset) % manifest.length]);
+  selected = dailyScenarios(day, count);
 } else {
   selected = manifest.slice(start, start + count);
 }
