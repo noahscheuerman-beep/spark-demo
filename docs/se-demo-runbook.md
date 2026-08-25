@@ -12,7 +12,7 @@ A customer reports a faulty home charger and asks to return the replacement they
 - A playground using the Spark Full Agent task and Core 10 dataset
 - Spark project Logs, filtered to the faulty-charger scenario when possible
 
-Keep the experiment links in [demo-story.md](demo-story.md). Do not depend on a particular log ID, since live interactions create new traces.
+Do not depend on a particular log ID, since live interactions create new traces.
 
 ## Primary path
 

@@ -2,7 +2,7 @@
 
 Spark is a fictional electric-vehicle ownership portal built for story-driven Braintrust demos. The customer can charge their vehicle, spend Spark Credits in a small accessories shop, create persistent orders, and ask support about the same live account state.
 
-See [docs/demo-story.md](docs/demo-story.md) for the narrative and proof points. Use [docs/se-demo-runbook.md](docs/se-demo-runbook.md) for the live click path, persona handoffs, optional branches, and reset steps.
+Use [docs/se-demo-runbook.md](docs/se-demo-runbook.md) for the demo narrative, live click path, persona handoffs, optional branches, and reset steps.
 
 The primary demo follows one mixed-intent request:
 
