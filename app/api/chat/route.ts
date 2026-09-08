@@ -4,16 +4,20 @@ import { ensureDb, getDb } from "../../../db";
 import { conversationToolEvents, messages, sessions } from "../../../db/schema";
 import { runSupportTurn } from "../../../lib/spark/agent";
 import { attachAccountCookie, ensureSparkAccount, resolveAccount } from "../../../lib/spark/account";
+import { ChatAuthorizationError, resolveModelApiKey, type ChatSource } from "../../../lib/spark/chat-auth";
 import { getSparkConfig } from "../../../lib/spark/config";
 import { errorDetails, logSparkEvent, SparkOperationTimeoutError, withAbortTimeout } from "../../../lib/spark/runtime";
 import type { AgentPlaygroundOverrides, ChatMessage } from "../../../lib/spark/types";
 
 const CHAT_REQUEST_TIMEOUT_MS = 75_000;
 
+export const runtime = "nodejs";
+export const maxDuration = 90;
+
 type ChatRequest = {
   sessionId?: string;
   message?: string;
-  source?: "interactive" | "seed" | "daily" | "playground";
+  source?: ChatSource;
   scenarioId?: string;
   promptVersion?: "baseline-v1" | "improved-v1" | "story-v2";
   playgroundOverrides?: AgentPlaygroundOverrides;
@@ -43,7 +47,8 @@ async function handleChatPost(request: Request, requestId: string, requestSignal
     const payload = (await request.json()) as ChatRequest;
     const sessionId = payload.sessionId?.trim() || crypto.randomUUID();
     const message = payload.message?.trim() || "";
-    const source = payload.source ?? "interactive";
+    const allowedSources = new Set<ChatSource>(["interactive", "seed", "daily", "playground"]);
+    const source = payload.source && allowedSources.has(payload.source) ? payload.source : "interactive";
     const exportedEvalParent = source === "interactive"
       ? undefined
       : request.headers.get("x-braintrust-parent") ?? undefined;
@@ -80,13 +85,23 @@ async function handleChatPost(request: Request, requestId: string, requestSignal
       });
       return Response.json(
         {
-          error: "Spark chat is not configured. Add your own Braintrust API key and project ID to the server environment.",
+          error: "Spark chat is not configured. Add BRAINTRUST_API_KEY and BRAINTRUST_PROJECT_ID to the server environment.",
           code: "configuration_required",
           requestId,
         },
         { status: 503 },
       );
     }
+
+    const hostname = new URL(request.url).hostname;
+    const modelApiKey = resolveModelApiKey({
+      source,
+      authorizationHeader: request.headers.get("authorization"),
+      internalTokenHeader: request.headers.get("x-spark-internal-token"),
+      configuredInternalToken: config.internalToken,
+      serverApiKey: config.braintrustApiKey,
+      allowLocalInternal: hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1",
+    });
 
     requestSignal.throwIfAborted();
     await ensureDb();
@@ -123,6 +138,7 @@ async function handleChatPost(request: Request, requestId: string, requestSignal
       {
         requestId,
         requestSignal,
+        modelApiKey,
         sessionId,
         accountId,
         source,
@@ -146,7 +162,10 @@ async function handleChatPost(request: Request, requestId: string, requestSignal
     await db.update(sessions).set({ rootSpanParent: result.exportedRoot, updatedAt: Date.now() }).where(eq(sessions.id, sessionId));
 
     const response = attachAccountCookie(
-      Response.json({ sessionId, content: result.content, route: result.route, toolsUsed: result.toolsUsed, traced: Boolean(config.braintrustApiKey) }),
+      Response.json(
+        { sessionId, content: result.content, route: result.route, toolsUsed: result.toolsUsed, traced: true },
+        { headers: { "Cache-Control": "no-store" } },
+      ),
       accountId,
       setCookie,
     );
@@ -174,6 +193,12 @@ export async function POST(request: Request) {
       (signal) => handleChatPost(request, requestId, signal),
     );
   } catch (error) {
+    if (error instanceof ChatAuthorizationError) {
+      return Response.json(
+        { error: error.message, code: error.code, requestId },
+        { status: error.status, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     const message = error instanceof Error ? error.message : "Unexpected support error";
     const timedOut = error instanceof SparkOperationTimeoutError;
     const aborted = error instanceof Error && error.name === "AbortError";

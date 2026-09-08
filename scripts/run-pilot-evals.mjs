@@ -8,6 +8,9 @@ const APP_URL = process.env.BRAINTRUST_APP_URL || "https://www.braintrust.dev";
 const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.braintrust.dev/v1/proxy";
 const MODEL = process.env.SPARK_MODEL || "gpt-4o-2024-11-20";
 const DATASET_NAME = "Spark Support Pilot v1";
+const internalHeaders = process.env.SPARK_INTERNAL_TOKEN
+  ? { "x-spark-internal-token": process.env.SPARK_INTERNAL_TOKEN }
+  : {};
 
 const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...rest] = arg.replace(/^--/, "").split("=");
@@ -125,7 +128,7 @@ async function runConversation(input, promptVersion, traceHeaders = {}) {
   for (const message of input.userTurns) {
     const response = await fetch(`${baseUrl}/api/chat`, {
       method: "POST",
-      headers: { ...traceHeaders, "Content-Type": "application/json", Cookie: accountCookie },
+      headers: { ...traceHeaders, ...internalHeaders, "Content-Type": "application/json", Cookie: accountCookie },
       body: JSON.stringify({
         sessionId,
         message,

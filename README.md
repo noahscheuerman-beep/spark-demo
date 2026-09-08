@@ -12,7 +12,7 @@ Use the internal scenario bar to load `Faulty Home Connector`, start a charging 
 
 ## Run locally
 
-Requirements: Node.js 22.13 or newer and access to a Braintrust project.
+Requirements: Node.js 22 and access to a Braintrust project.
 
 ```bash
 npm install
@@ -20,9 +20,11 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Fill in `BRAINTRUST_API_KEY` and `BRAINTRUST_PROJECT_ID` in `.env.local` before using chat. Both values stay in the server environment. Spark does not accept credentials from the browser or store them in D1. Environment files are ignored by Git, while `.env.example` is intentionally safe to commit.
+Fill in `BRAINTRUST_API_KEY` and `BRAINTRUST_PROJECT_ID` in `.env.local` before using chat. The server key writes traces to the configured project and powers trusted local eval runners. Each person using the interactive chat enters their own Braintrust API key in the page. The browser keeps that key only in memory, sends it only with chat requests, and the server does not store or log it.
 
-Without both values, the ownership portal still loads but chat returns a configuration-required response instead of calling a model.
+Local development uses `spark-demo.db` automatically. Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` when you want to test against the hosted database. Environment files and the local database are ignored by Git, while `.env.example` is intentionally safe to commit.
+
+Without the server key and project ID, the ownership portal still loads but chat returns a configuration-required response instead of calling a model. Without a visitor-provided key, the chat composer remains disabled.
 
 Open the default URL for `baseline-v1`. Add `?agent=improved` for `improved-v1`.
 
@@ -49,7 +51,7 @@ The pilot runner refuses to recycle a smaller scenario set to reach a larger cou
 
 Spark includes four remote eval tasks for Braintrust playgrounds: the full agent, routing, response composition, and scorer calibration. Seed the two fixed ten-case datasets with `npm run playgrounds:seed`, start Spark with `npm run dev`, and start the remote eval source with `npm run playgrounds:dev`. Configure `http://localhost:8300` as a remote eval source in the Spark-Demo project. Each playground can then use its matching task and ten-case dataset without creating an experiment.
 
-The full-agent task exposes the model, router system prompt, all three specialist system prompts, router and specialist temperatures, and the maximum tool-step count. The focused routing, response, and scorer-calibration tasks expose the model and prompt controls relevant to their layer. Playground overrides are accepted only when the request source is `playground`; the normal Spark website continues using its configured defaults.
+The full-agent task exposes the model, router system prompt, all three specialist system prompts, router and specialist temperatures, and the maximum tool-step count. The focused routing, response, and scorer-calibration tasks expose the model and prompt controls relevant to their layer. Playground overrides are accepted only when the request source is `playground`; the normal Spark website continues using its configured defaults. On a deployed instance, set `SPARK_INTERNAL_TOKEN` on both the Spark server and the remote eval runner. This prevents a public caller from selecting internal sources or supplying playground overrides.
 
 Run `npm run playgrounds:smoke` to execute all four tasks locally against exactly ten cases without sending experiment results to Braintrust. The full-agent task still sends its ordinary application traces to Spark-Demo.
 
@@ -61,9 +63,17 @@ npm run playgrounds:dev -- --dev-org-name "Your Braintrust organization"
 
 ## Publishing and hosting
 
-Spark is designed for bring-your-own credentials. The safest public setup is for each user to clone or deploy their own copy and configure `BRAINTRUST_API_KEY` and `BRAINTRUST_PROJECT_ID` as server-side environment variables. Do not add a browser API-key field and do not configure a shared public deployment with an internal key.
+Spark is a native Next.js application and can be imported into Vercel without a custom build command or `vercel.json` file. Before the first deployment:
 
-The current application uses a Cloudflare Worker and D1. Cloudflare is therefore the direct deployment target. A Vercel deployment would require replacing or adapting the Worker and D1 bindings. A shared hosted showcase can leave chat unconfigured, while a self-hosted deployment enables chat with the deployer's own credentials.
+1. Import this repository into the intended Vercel project.
+2. Add a Turso database through the Vercel Marketplace, or provide `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` manually. Spark creates its demo tables on first use.
+3. Add `BRAINTRUST_API_KEY` and `BRAINTRUST_PROJECT_ID` for server-side tracing.
+4. Add a long, random `SPARK_INTERNAL_TOKEN` if the deployed app will serve remote evals or playgrounds.
+5. Deploy and run one account action plus one chat turn as a smoke test.
+
+Interactive model calls always require the visitor's own Braintrust API key. Spark forwards that key to the configured Braintrust proxy for that request only. It never falls back to the server key for public chat, so automated traffic cannot spend the deployment owner's model allowance. The server key is reserved for trace ingestion and authenticated internal eval modes. Only enter a key into a deployment you trust.
+
+The Vercel CLI is optional. The dashboard can perform the initial import and Marketplace connection; after the project exists, `vercel link` and `vercel deploy` are useful for repeat deployments and smoke testing.
 
 ## Automated trace generation
 
@@ -78,4 +88,4 @@ The API key is available only to the workflow process. It is not committed, sent
 
 ## Data and safety
 
-Spark uses a fictional, unnamed customer and isolates credits, orders, charging sessions, and scenario state by an anonymous demo account in Cloudflare D1. The browser stores only the anonymous account cookie, not authoritative product state. The application does not import or depend on the local Braintrust evidence workspace; that workspace is used only as read-only evidence while developing current Braintrust integrations.
+Spark uses a fictional, unnamed customer and isolates credits, orders, charging sessions, and scenario state by an anonymous demo account in Turso. The browser stores only the anonymous account cookie and an in-memory visitor API key, not authoritative product state. The application does not import or depend on the local Braintrust evidence workspace; that workspace is used only as read-only evidence while developing current Braintrust integrations.

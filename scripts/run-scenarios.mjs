@@ -15,6 +15,9 @@ const summaryOnly = args.get("summary-only") === "true";
 const concurrency = Number(args.get("concurrency") || 1);
 const scenarioId = args.get("scenario");
 const promptVersion = args.get("prompt-version") || "baseline-v1";
+const internalHeaders = process.env.SPARK_INTERNAL_TOKEN
+  ? { "x-spark-internal-token": process.env.SPARK_INTERNAL_TOKEN }
+  : {};
 const manifest = JSON.parse(await readFile(new URL("../scenarios/manifest.json", import.meta.url), "utf8"));
 
 function accountScenarioFor(scenario) {
@@ -113,7 +116,7 @@ async function runScenario(scenario) {
   for (const message of scenario.userTurns) {
     const { body } = await fetchJson(`${baseUrl}/api/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: accountCookie },
+      headers: { ...internalHeaders, "Content-Type": "application/json", Cookie: accountCookie },
       body: JSON.stringify({ sessionId, message, source, scenarioId: scenario.id, promptVersion }),
     }, scenario.id, 1);
     turns.push({ user: message, assistant: body.content, route: body.route?.specialist, tools: body.toolsUsed });

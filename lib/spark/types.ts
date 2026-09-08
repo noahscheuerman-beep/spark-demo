@@ -24,6 +24,7 @@ export type SupportResult = {
 export type AgentContext = {
   requestId: string;
   requestSignal: AbortSignal;
+  modelApiKey: string;
   sessionId: string;
   accountId: string;
   source: "interactive" | "seed" | "daily" | "playground";

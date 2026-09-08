@@ -15,6 +15,9 @@ const MODEL = process.env.SPARK_MODEL || "gpt-4o-2024-11-20";
 const SPARK_BASE_URL = process.env.SPARK_BASE_URL || "http://localhost:3000";
 const AGENT_EXPERIMENT_NAME = process.env.SPARK_AGENT_EXPERIMENT_NAME || "Spark Agent Playground";
 const AGENT_BASE_EXPERIMENT = process.env.SPARK_BASE_EXPERIMENT;
+const internalHeaders: Record<string, string> = process.env.SPARK_INTERNAL_TOKEN
+  ? { "x-spark-internal-token": process.env.SPARK_INTERNAL_TOKEN }
+  : {};
 const requestedScenarioIds = new Set(
   (process.env.SPARK_EVAL_SCENARIO_IDS || "")
     .split(",")
@@ -232,7 +235,7 @@ async function runConversation(
   for (const message of input.userTurns) {
     const response = await fetch(`${SPARK_BASE_URL}/api/chat`, {
       method: "POST",
-      headers: { ...traceHeaders, "Content-Type": "application/json", Cookie: accountCookie },
+      headers: { ...traceHeaders, ...internalHeaders, "Content-Type": "application/json", Cookie: accountCookie },
       body: JSON.stringify({
         sessionId,
         message,

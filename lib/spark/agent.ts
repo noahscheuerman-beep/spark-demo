@@ -50,7 +50,7 @@ const toolsBySpecialist: Record<Specialist, ChatCompletionTool[]> = {
   ],
 };
 
-function createClient() {
+function createClient(apiKey: string) {
   const config = getSparkConfig();
   const hardTimeoutFetch: typeof fetch = (input, init) => {
     // The OpenAI SDK clears its own timeout after response headers arrive. A
@@ -63,7 +63,7 @@ function createClient() {
     return globalThis.fetch(input, { ...init, signal });
   };
   const raw = new OpenAI({
-    apiKey: config.braintrustApiKey,
+    apiKey,
     baseURL: config.openaiBaseUrl,
     maxRetries: 0,
     timeout: SPECIALIST_MODEL_TIMEOUT_MS,
@@ -422,7 +422,7 @@ export async function runSupportTurn(
   const model = context.playgroundOverrides?.model ?? config.model;
   const lastMessage = messages.at(-1)?.content ?? "";
 
-  if (!config.braintrustApiKey) {
+  if (!context.modelApiKey) {
     const route = fallbackRoute(lastMessage);
     return { content: fallbackResponse(route), route, toolsUsed: [], exportedRoot };
   }
@@ -483,7 +483,7 @@ export async function runSupportTurn(
     }
   }
 
-  const client = createClient();
+  const client = createClient(context.modelApiKey);
   try {
     const result = await withAbortTimeout(
       {

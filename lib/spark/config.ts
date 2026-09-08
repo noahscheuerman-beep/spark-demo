@@ -1,5 +1,3 @@
-import { env } from "cloudflare:workers";
-
 const defaults = {
   BRAINTRUST_API_URL: "https://api.braintrust.dev",
   BRAINTRUST_APP_URL: "https://www.braintrust.dev",
@@ -9,15 +7,14 @@ const defaults = {
 } as const;
 
 function readRuntimeValue(name: string) {
-  const workerEnv = env as unknown as Record<string, string | undefined>;
-  const nodeEnv = typeof process !== "undefined" ? process.env : undefined;
-  return workerEnv[name] || nodeEnv?.[name];
+  return process.env[name]?.trim();
 }
 
 export function getSparkConfig() {
   return {
     braintrustApiKey: readRuntimeValue("BRAINTRUST_API_KEY") ?? "",
     braintrustProjectId: readRuntimeValue("BRAINTRUST_PROJECT_ID") ?? "",
+    internalToken: readRuntimeValue("SPARK_INTERNAL_TOKEN") ?? "",
     braintrustApiUrl: readRuntimeValue("BRAINTRUST_API_URL") ?? defaults.BRAINTRUST_API_URL,
     braintrustAppUrl: readRuntimeValue("BRAINTRUST_APP_URL") ?? defaults.BRAINTRUST_APP_URL,
     openaiBaseUrl: readRuntimeValue("OPENAI_BASE_URL") ?? defaults.OPENAI_BASE_URL,

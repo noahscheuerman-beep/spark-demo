@@ -15,7 +15,7 @@ body {
   margin: 0;
   background: #f6f8f7;
   color: var(--ink);
-  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -105,6 +105,15 @@ h1 { margin: 0; font-size: clamp(31px, 3vw, 45px); font-weight: 560; letter-spac
 .support-header h2 { margin: 0 0 2px; font-size: 14px; font-weight: 640; }
 .support-header p { margin: 0; color: var(--muted); font-size: 11px; }
 .support-header button { border: 0; background: transparent; color: #7d8983; letter-spacing: 2px; cursor: pointer; }
+.api-key-panel { padding: 13px 18px 12px; border-bottom: 1px solid var(--line); background: #f8faf9; }
+.api-key-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.api-key-heading label { color: #34473f; font-size: 10px; font-weight: 650; }
+.api-key-heading span { color: #89948f; font-size: 9px; }
+.api-key-field { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
+.api-key-field input { min-width: 0; height: 34px; padding: 0 10px; border: 1px solid #cbd8d1; border-radius: 8px; outline: 0; background: white; color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
+.api-key-field input:focus { border-color: #6f8f81; box-shadow: 0 0 0 3px rgba(31,79,61,.08); }
+.api-key-field button { padding: 0 9px; border: 1px solid #cbd8d1; border-radius: 8px; background: white; color: #52665d; font-size: 9px; font-weight: 620; cursor: pointer; }
+.api-key-panel > p { margin: 6px 0 0; color: #84908a; font-size: 8px; line-height: 1.4; }
 .conversation { flex: 1; padding: 24px 20px 18px; background: linear-gradient(180deg,#fbfcfb,#f7faf8); }
 .time-label { margin: 0 0 22px; text-align: center; color: #9aa39f; font-size: 10px; }
 .assistant-row { display: flex; align-items: flex-start; gap: 9px; }
