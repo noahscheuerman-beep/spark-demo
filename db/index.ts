@@ -47,7 +47,6 @@ export async function ensureDb() {
       "CREATE INDEX IF NOT EXISTS idx_demo_orders_v2_account_created ON demo_orders_v2 (account_id, created_at)",
       "CREATE TABLE IF NOT EXISTS charging_sessions (id TEXT PRIMARY KEY NOT NULL, account_id TEXT NOT NULL, status TEXT NOT NULL, started_at INTEGER NOT NULL, ended_at INTEGER, energy_wh INTEGER NOT NULL)",
       "CREATE INDEX IF NOT EXISTS idx_charging_sessions_account_started ON charging_sessions (account_id, started_at)",
-      "PRAGMA optimize",
     ], "write").then(() => undefined).catch((error) => {
       schemaReady = undefined;
       throw error;
