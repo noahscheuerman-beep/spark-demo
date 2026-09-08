@@ -96,7 +96,6 @@ async function handleChatPost(request: Request, requestId: string, requestSignal
     const hostname = new URL(request.url).hostname;
     const modelApiKey = resolveModelApiKey({
       source,
-      authorizationHeader: request.headers.get("authorization"),
       internalTokenHeader: request.headers.get("x-spark-internal-token"),
       configuredInternalToken: config.internalToken,
       serverApiKey: config.braintrustApiKey,

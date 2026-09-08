@@ -4,21 +4,17 @@ import { ChatAuthorizationError, resolveModelApiKey } from "../lib/spark/chat-au
 
 const base = {
   source: "interactive" as const,
-  authorizationHeader: null,
   internalTokenHeader: null,
   configuredInternalToken: "internal-secret",
   serverApiKey: "server-key",
   allowLocalInternal: false,
 };
 
-test("interactive chat requires and returns the visitor's bearer token", () => {
+test("interactive chat uses the deployment's server key", () => {
+  assert.equal(resolveModelApiKey(base), "server-key");
   assert.throws(
-    () => resolveModelApiKey(base),
-    (error: unknown) => error instanceof ChatAuthorizationError && error.code === "api_key_required",
-  );
-  assert.equal(
-    resolveModelApiKey({ ...base, authorizationHeader: "Bearer visitor-key" }),
-    "visitor-key",
+    () => resolveModelApiKey({ ...base, serverApiKey: "" }),
+    (error: unknown) => error instanceof ChatAuthorizationError && error.code === "configuration_required",
   );
 });
 

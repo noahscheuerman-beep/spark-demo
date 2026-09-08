@@ -6,17 +6,11 @@ export class ChatAuthorizationError extends Error {
   constructor(
     message: string,
     readonly status: 401 | 403 | 503,
-    readonly code: "api_key_required" | "internal_access_required" | "configuration_required",
+    readonly code: "internal_access_required" | "configuration_required",
   ) {
     super(message);
     this.name = "ChatAuthorizationError";
   }
-}
-
-function bearerToken(value: string | null) {
-  const match = value?.match(/^Bearer\s+(.+)$/i);
-  const token = match?.[1]?.trim() ?? "";
-  return token.length <= 512 ? token : "";
 }
 
 function secretsMatch(provided: string | null, configured: string) {
@@ -29,22 +23,20 @@ function secretsMatch(provided: string | null, configured: string) {
 
 export function resolveModelApiKey(options: {
   source: ChatSource;
-  authorizationHeader: string | null;
   internalTokenHeader: string | null;
   configuredInternalToken: string;
   serverApiKey: string;
   allowLocalInternal: boolean;
 }) {
   if (options.source === "interactive") {
-    const userApiKey = bearerToken(options.authorizationHeader);
-    if (!userApiKey) {
+    if (!options.serverApiKey) {
       throw new ChatAuthorizationError(
-        "Add your Braintrust API key to use Spark Support.",
-        401,
-        "api_key_required",
+        "Spark chat is not configured with a server API key.",
+        503,
+        "configuration_required",
       );
     }
-    return userApiKey;
+    return options.serverApiKey;
   }
 
   const validInternalToken = secretsMatch(options.internalTokenHeader, options.configuredInternalToken);

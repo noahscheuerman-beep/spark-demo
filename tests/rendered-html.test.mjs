@@ -12,8 +12,8 @@ test("pre-renders the Spark customer portal", async () => {
   assert.match(html, /View orders/);
   assert.match(html, /Demo scenario/);
   assert.match(html, /Spark Shop/);
-  assert.match(html, /Braintrust API key/);
-  assert.match(html, /never stored by this demo/);
+  assert.match(html, /Ask Spark Support/);
+  assert.doesNotMatch(html, /Braintrust API key|Add your Braintrust API key/);
   assert.match(html, /Buy with credits/);
   assert.match(html, /Mobile Connector/);
   assert.doesNotMatch(html, /Find a charger|Open profile/);

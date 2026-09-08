@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "npm run build && node --import tsx --test tests/rendered-html.test.mjs tests/chat-auth.test.ts tests/confirmation.test.ts",
+    "test": "npm run build && node --import tsx --test tests/rendered-html.test.mjs tests/access.test.ts tests/chat-auth.test.ts tests/confirmation.test.ts",
     "test:chat-integration": "node --test tests/chat-warranty.integration.test.mjs",
     "test:duplicate-order": "node --test tests/chat-duplicate-order.integration.test.mjs",
     "test:confirmation": "node --import tsx --test tests/confirmation.test.ts",

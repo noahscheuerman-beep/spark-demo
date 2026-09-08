@@ -86,7 +86,6 @@ function orderSupportPrompt(order: SparkOrder) {
 }
 
 export default function Home() {
-  const [apiKey, setApiKey] = useState("");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<UiMessage[]>([
     { role: "assistant", content: supportWelcome },
@@ -147,8 +146,7 @@ export default function Home() {
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = message.trim();
-    const userApiKey = apiKey.trim();
-    if (!value || !userApiKey || sending) return;
+    if (!value || sending) return;
     setMessages((current) => [...current, { role: "user", content: value }]);
     setMessage("");
     setSending(true);
@@ -157,10 +155,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${userApiKey}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: sessionId.current, message: value, source: "interactive", scenarioId: account.scenario, promptVersion: promptVersion.current }),
       });
       const result = await response.json() as { content?: string; error?: string };
@@ -340,27 +335,6 @@ export default function Home() {
               <button type="button" onClick={resetConversation} aria-label="Start a new conversation" title="Start a new conversation">↻</button>
             </div>
 
-            <div className="api-key-panel">
-              <div className="api-key-heading">
-                <label htmlFor="braintrust-api-key">Braintrust API key</label>
-                <span>Used only for this session</span>
-              </div>
-              <div className="api-key-field">
-                <input
-                  id="braintrust-api-key"
-                  type="password"
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  placeholder="sk-..."
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                />
-                {apiKey && <button type="button" onClick={() => setApiKey("")} aria-label="Clear Braintrust API key">Clear</button>}
-              </div>
-              <p>Your key is sent only when you message Spark and is never stored by this demo.</p>
-            </div>
-
             <div className="conversation" aria-live="polite">
               <p className="time-label">Today, 2:41 PM</p>
               {messages.map((item, index) => item.role === "assistant" ? (
@@ -379,8 +353,8 @@ export default function Home() {
 
             <form className="composer" onSubmit={sendMessage}>
               <label className="sr-only" htmlFor="support-message">Message Spark Support</label>
-              <input ref={messageInput} id="support-message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder={apiKey.trim() ? "Ask Spark Support..." : "Add your Braintrust API key to start"} autoComplete="off" />
-              <button type="submit" disabled={!message.trim() || !apiKey.trim() || sending} aria-label="Send message">↑</button>
+              <input ref={messageInput} id="support-message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ask Spark Support..." autoComplete="off" />
+              <button type="submit" disabled={!message.trim() || sending} aria-label="Send message">↑</button>
             </form>
             <p className="support-note">Spark Support can make mistakes. Check important information.</p>
           </section>

@@ -20,11 +20,13 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Fill in `BRAINTRUST_API_KEY` and `BRAINTRUST_PROJECT_ID` in `.env.local` before using chat. The server key writes traces to the configured project and powers trusted local eval runners. Each person using the interactive chat enters their own Braintrust API key in the page. The browser keeps that key only in memory, sends it only with chat requests, and the server does not store or log it.
+Fill in `BRAINTRUST_API_KEY` and `BRAINTRUST_PROJECT_ID` in `.env.local` before using chat. Spark uses the server-side Braintrust key for Gateway model calls and sends every trace to the configured project. The key is never sent to the browser.
 
 Local development uses `spark-demo.db` automatically. Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` when you want to test against the hosted database. Environment files and the local database are ignored by Git, while `.env.example` is intentionally safe to commit.
 
-Without the server key and project ID, the ownership portal still loads but chat returns a configuration-required response instead of calling a model. Without a visitor-provided key, the chat composer remains disabled.
+Local development is open when `SPARK_ACCESS_CODE` is empty. Set it when you want to exercise the team-access screen locally. Hosted Vercel deployments fail closed until `SPARK_ACCESS_CODE` is configured. Successful access creates a secure, HTTP-only cookie that lasts for 12 hours.
+
+Without the server key and project ID, the ownership portal still loads locally but chat returns a configuration-required response instead of calling a model.
 
 Open the default URL for `baseline-v1`. Add `?agent=improved` for `improved-v1`.
 
@@ -67,11 +69,12 @@ Spark is a native Next.js application and can be imported into Vercel without a 
 
 1. Import this repository into the intended Vercel project.
 2. Add a Turso database through the Vercel Marketplace, or provide `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` manually. Spark creates its demo tables on first use.
-3. Add `BRAINTRUST_API_KEY` and `BRAINTRUST_PROJECT_ID` for server-side tracing.
-4. Add a long, random `SPARK_INTERNAL_TOKEN` if the deployed app will serve remote evals or playgrounds.
-5. Deploy and run one account action plus one chat turn as a smoke test.
+3. Add `BRAINTRUST_API_KEY` and `BRAINTRUST_PROJECT_ID` for server-side Gateway calls and tracing. Point `BRAINTRUST_PROJECT_ID` at the shared Spark-Demo project.
+4. Add a memorable internal `SPARK_ACCESS_CODE` and share it only with the Braintrust SE team. The hosted app is unavailable until this is configured.
+5. Add a separate long, random `SPARK_INTERNAL_TOKEN` if the deployed app will serve remote evals or playgrounds.
+6. Deploy, sign in with the team access code, and run one account action plus one chat turn as a smoke test.
 
-Interactive model calls always require the visitor's own Braintrust API key. Spark forwards that key to the configured Braintrust proxy for that request only. It never falls back to the server key for public chat, so automated traffic cannot spend the deployment owner's model allowance. The server key is reserved for trace ingestion and authenticated internal eval modes. Only enter a key into a deployment you trust.
+Interactive model calls use the deployment's server-side Braintrust key. A shared team-access gate protects the website and APIs, while `SPARK_INTERNAL_TOKEN` separately authenticates deployed playground and automated-eval requests. Do not reuse either access value as a Braintrust credential.
 
 The Vercel CLI is optional. The dashboard can perform the initial import and Marketplace connection; after the project exists, `vercel link` and `vercel deploy` are useful for repeat deployments and smoke testing.
 
@@ -88,4 +91,4 @@ The API key is available only to the workflow process. It is not committed, sent
 
 ## Data and safety
 
-Spark uses a fictional, unnamed customer and isolates credits, orders, charging sessions, and scenario state by an anonymous demo account in Turso. The browser stores only the anonymous account cookie and an in-memory visitor API key, not authoritative product state. The application does not import or depend on the local Braintrust evidence workspace; that workspace is used only as read-only evidence while developing current Braintrust integrations.
+Spark uses a fictional, unnamed customer and isolates credits, orders, charging sessions, and scenario state by an anonymous demo account in Turso. The browser stores only the anonymous account cookie and the HTTP-only internal-access cookie, not authoritative product state or Braintrust credentials. The application does not import or depend on the local Braintrust evidence workspace; that workspace is used only as read-only evidence while developing current Braintrust integrations.
