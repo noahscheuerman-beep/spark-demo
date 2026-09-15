@@ -78,6 +78,8 @@ if (scenarioId) {
   selected = manifest.slice(start, start + count);
 }
 
+console.error(`Destination: Logs. ${selected.length} complete conversations; 0 experiments. Each conversation is one root trace. Re-running adds new traces.`);
+
 if (dryRun) {
   console.log(JSON.stringify(selected.map((item) => ({ id: item.id, turns: item.userTurns.length, accountScenario: accountScenarioFor(item) })), null, 2));
   process.exit(0);

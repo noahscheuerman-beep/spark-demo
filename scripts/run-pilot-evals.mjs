@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import process from "node:process";
 import { Eval, initDataset, wrapOpenAI } from "braintrust";
 import OpenAI from "openai";
+import { selectEvalScenarios, assertEvalCaseCount } from "./eval-cases.mjs";
 
 const PROJECT_ID = process.env.BRAINTRUST_PROJECT_ID;
 const APP_URL = process.env.BRAINTRUST_APP_URL || "https://www.braintrust.dev";
@@ -24,12 +25,6 @@ const runLabel = args.get("run-label") || new Date().toISOString().replace(/[:.]
 const BASELINE_EXPERIMENT = `spark-pilot-baseline-${runLabel}`;
 const IMPROVED_EXPERIMENT = `spark-pilot-improved-${runLabel}`;
 
-if (!process.env.BRAINTRUST_API_KEY) {
-  throw new Error("BRAINTRUST_API_KEY is required. Load .env.braintrust before running the pilot evals.");
-}
-if (!PROJECT_ID) {
-  throw new Error("BRAINTRUST_PROJECT_ID is required. Load .env.braintrust before running the pilot evals.");
-}
 if (!new Set(["baseline", "improved", "both"]).has(only)) {
   throw new Error("--only must be baseline, improved, or both");
 }
@@ -38,6 +33,17 @@ if (!Number.isInteger(maxConcurrency) || maxConcurrency < 1) {
 }
 
 const manifest = JSON.parse(await readFile(new URL("../scenarios/manifest.json", import.meta.url), "utf8"));
+const scenarios = selectEvalScenarios(manifest, "pilot");
+const experimentCount = only === "both" ? 2 : 1;
+console.log(`Destination: Experiments. ${experimentCount} experiment(s), ${scenarios.length} cases each. This does not seed the Logs page.`);
+if (args.get("dry-run") === "true") process.exit(0);
+
+if (!process.env.BRAINTRUST_API_KEY) {
+  throw new Error("BRAINTRUST_API_KEY is required. Load .env.braintrust before running the pilot evals.");
+}
+if (!PROJECT_ID) {
+  throw new Error("BRAINTRUST_PROJECT_ID is required. Load .env.braintrust before running the pilot evals.");
+}
 const judge = wrapOpenAI(new OpenAI({ apiKey: process.env.BRAINTRUST_API_KEY, baseURL: OPENAI_BASE_URL }));
 
 const SCORE_ANCHORS = `Use exactly one of these evidence-based score anchors:
@@ -75,35 +81,36 @@ async function seedDataset() {
     },
   });
 
-  for (const scenario of manifest) {
-    dataset.insert({
-      id: scenario.id,
-      input: {
-        scenarioId: scenario.id,
-        title: scenario.title,
-        domain: scenario.domain,
-        goal: scenario.goal,
-        userTurns: scenario.userTurns,
-        accountScenario: accountScenarioFor(scenario.id),
-      },
-      expected: {
-        ...scenario.expected,
-        behaviorSpecs: scenario.behaviorSpecs,
-      },
-      metadata: {
-        scenario_id: scenario.id,
-        variation_key: scenario.variationKey,
-        behavior_specs: scenario.behaviorSpecs,
-      },
-      tags: scenario.tags,
-    });
-  }
+  const cases = scenarios.map((scenario) => ({
+    id: scenario.id,
+    input: {
+      scenarioId: scenario.id,
+      title: scenario.title,
+      domain: scenario.domain,
+      goal: scenario.goal,
+      userTurns: scenario.userTurns,
+      accountScenario: accountScenarioFor(scenario.id),
+    },
+    expected: {
+      ...scenario.expected,
+      behaviorSpecs: scenario.behaviorSpecs,
+    },
+    metadata: {
+      scenario_id: scenario.id,
+      variation_key: scenario.variationKey,
+      behavior_specs: scenario.behaviorSpecs,
+    },
+    tags: scenario.tags,
+  }));
+  assertEvalCaseCount(cases);
+  for (const record of cases) dataset.insert(record);
 
   await dataset.flush();
   const summary = await dataset.summarize();
-  console.log(`Dataset ready: ${summary.datasetName} (${summary.dataSummary?.totalRecords ?? manifest.length} conversations)`);
+  console.log(`Dataset ready: ${summary.datasetName}. Selected ${cases.length} cases per experiment; additional saved dataset rows are excluded.`);
   console.log(summary.datasetUrl);
-  return dataset;
+  // Evaluate exactly these selected records, never all rows in the persistent dataset.
+  return cases;
 }
 
 async function runConversation(input, promptVersion, traceHeaders = {}) {
@@ -271,7 +278,8 @@ function supportQuality(args) {
   );
 }
 
-async function runExperiment(dataset, promptVersion) {
+async function runExperiment(cases, promptVersion) {
+  assertEvalCaseCount(cases);
   const baseline = promptVersion === "baseline-v1";
   const experimentName = baseline ? BASELINE_EXPERIMENT : IMPROVED_EXPERIMENT;
   console.log(`Running ${experimentName}...`);
@@ -281,7 +289,7 @@ async function runExperiment(dataset, promptVersion) {
     description: baseline
       ? "Current Spark router over the 20-conversation support pilot."
       : "Improved intent-preserving router over the same 20-conversation support pilot.",
-    data: dataset,
+    data: cases,
     task: async (input, { span }) => {
       const traceHeaders = span.inject({ "x-braintrust-parent": await span.export() });
       return runConversation(input, promptVersion, traceHeaders);
@@ -299,8 +307,8 @@ async function runExperiment(dataset, promptVersion) {
 const health = await fetch(`${baseUrl}/api/account`).catch(() => null);
 if (!health?.ok) throw new Error(`Spark is not reachable at ${baseUrl}. Start it with npm run dev first.`);
 
-const dataset = await seedDataset();
-if (only === "baseline" || only === "both") await runExperiment(dataset, "baseline-v1");
-if (only === "improved" || only === "both") await runExperiment(dataset, "improved-v1");
+const cases = await seedDataset();
+if (only === "baseline" || only === "both") await runExperiment(cases, "baseline-v1");
+if (only === "improved" || only === "both") await runExperiment(cases, "improved-v1");
 
 console.log("Pilot evals finished.");

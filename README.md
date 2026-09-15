@@ -34,20 +34,74 @@ Open the default URL for `baseline-v1`. Add `?agent=improved` for `improved-v1`.
 
 Each complete multi-turn conversation is one `spark.support_conversation` root trace. Every turn, concierge decision, specialist run, model call, and tool execution is a child span. Root metadata includes the scenario ID, source, fixed model snapshot, prompt version, and applicable behavior specs.
 
-## Scenario workflow
+## Demo setup: seed Logs first, then run small experiments
 
-The project-local `generate-spark-scenarios` skill maintains realistic, non-duplicative customer scripts in `scenarios/manifest.json`.
+**Target: approximately 310 complete conversations in Logs, then 1–2 experiments with 20 cases each. The experiment limit is 25 cases.** One conversation is one root trace; its turns and tool calls are child spans, not additional cases.
+
+Keep `npm run dev` running with the Braintrust credentials configured above. Run the following from the project directory in a second terminal.
+
+### 1. Validate the scenario files (local only)
 
 ```bash
 npm run scenarios:check
-npm run scenarios:pilot
-npm run scenarios:daily
-npm run evals:pilot
 ```
 
-The pilot runner refuses to recycle a smaller scenario set to reach a larger count. Expand and validate the manifest before running the 300-conversation seed.
+This checks all 310 scenario definitions. It creates **no logs, datasets, or experiments**. “Validated 310 scenarios” does not mean anything has been uploaded.
 
-`npm run evals:pilot` upserts the 20 scenarios into the `Spark Support Pilot v1` Braintrust dataset, then runs the same conversations through `baseline-v1` and `improved-v1`. It uses one deterministic scorer for required tool coverage and four GPT-4o judges for goal resolution, groundedness, safe action handling, and overall support quality. Judge calls are traced inside the experiment with their prompts, outputs, token usage, and cost. Eval caching is disabled so each pilot contains genuinely fresh conversations and scores. Each invocation creates a clean pair with a shared timestamp label. Pass `--run-label=your-label` when you want a memorable pair of experiment names. Use `--only=improved` for a single 20-conversation run, and optionally provide `--base-experiment=experiment-name` for a comparison. Runs default to one conversation at a time for local reliability; increase this deliberately with `--concurrency=2` or higher.
+### 2. Seed approximately 310 conversations into the Logs page
+
+```bash
+npm run logs:seed
+```
+
+This runs all 310 conversations through Spark and writes application traces to **your configured Braintrust project → Logs**. It creates **zero experiments**. This is the bulk demo seeding step and makes real model calls. Wait for completion, check the reported successes/failures, and verify the root conversations in Logs before continuing.
+
+Run this once for a fresh demo project. Re-running adds another batch of traces; it does not replace existing logs. If the project already has the seed logs, skip this step. A failed or partial run should be inspected before retrying the whole batch.
+
+Preview the selection without model calls or uploads:
+
+```bash
+npm run logs:seed -- --dry-run=true
+```
+
+### 3. Create one or two small experiments
+
+For the initial baseline/improved comparison, run:
+
+```bash
+node --env-file=.env.local scripts/run-pilot-evals.mjs
+```
+
+This creates **two experiments with exactly 20 cases each** in **your project → Experiments**. Alternatively, start with just one:
+
+```bash
+node --env-file=.env.local scripts/run-pilot-evals.mjs --only=improved
+```
+
+Choose one of these commands; do not run both during initial setup. If credentials are already exported in your terminal, the equivalent commands are `npm run evals:pilot` and `npm run evals:pilot -- --only=improved`. If you keep the credentials in `.env.braintrust`, use that filename instead of `.env.local`.
+
+The runner upserts the selected 20 cases into `Spark Support Pilot v1`, but evaluates **only those 20 selected cases**, even if that saved dataset contains older or additional rows. It refuses to start an experiment with more than 25 cases. Experiment conversations attach to the experiment traces; this command is not the bulk Logs seeder. No existing datasets or experiments are deleted.
+
+Preview the experiment count without credentials, model calls, or uploads:
+
+```bash
+npm run evals:pilot -- --dry-run=true
+```
+
+Each real invocation creates new experiments. A comparison uses a shared timestamp label; optionally pass `--run-label=your-label`. For a single improved run, `--base-experiment=experiment-name` selects an existing comparison. Runs default to one conversation at a time. The pilot uses required-tool coverage plus four GPT-4o judges, with fresh conversations and scores on every run.
+
+### Other commands (optional, not initial setup steps)
+
+| Command | Destination | Amount |
+| --- | --- | --- |
+| `npm run scenarios:check` | Local validation only | No uploads |
+| `npm run logs:seed` | Logs | 310 conversations, zero experiments |
+| `npm run scenarios:pilot` | Logs | 20 conversations, zero experiments |
+| `npm run scenarios:daily` | Logs | 5 conversations, zero experiments |
+| `npm run evals:pilot` | Experiments | 2 experiments × 20 cases |
+| `npm run evals:pilot -- --only=improved` | Experiments | 1 experiment × 20 cases |
+
+Experiment commands need credentials in the terminal environment, as shown above. The project-local `generate-spark-scenarios` skill maintains `scenarios/manifest.json`. The Logs runner refuses to recycle a smaller scenario set to meet a larger count.
 
 ## Braintrust playgrounds
 
